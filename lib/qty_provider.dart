@@ -23,12 +23,22 @@ class QtyProvider extends ChangeNotifier {
       "price": 49,
       "qty": 1,
     },
+    {
+      "subtitle": "LuxeLiving New",
+      "name": "Arm Chair New",
+      "image": "assets/product2.jpg",
+      "price": 59,
+      "qty": 1,
+    },
   ];
 
-  int sumQuantities(int sum, item){
-    return sum + item['qty'] as int;
+  int totalItems() {
+    int totalQty = 0;
+    for (var product in products) {
+      totalQty += product['qty'] as int;
+    }
+    return totalQty;
   }
-  int get totalItems => products.fold(0, sumQuantities);
 
   void increaseQty(int index) {
     products[index]['qty']++;
@@ -36,7 +46,9 @@ class QtyProvider extends ChangeNotifier {
   }
 
   void decreaseQty(int index) {
-    products[index]['qty']--;
-    notifyListeners();
+    if (products[index]['qty'] > 1) {
+      products[index]['qty']--;
+      notifyListeners();
+    }
   }
 }

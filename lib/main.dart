@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:task1/qty_provider.dart';
+import 'package:task1/setting.dart';
+import 'package:task1/theme_provider.dart';
 
 void main() {
-  runApp(ChangeNotifierProvider(
-    create: (context) => QtyProvider(),
-    child: MyApp(),
-  ));
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => QtyProvider()),
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -15,11 +22,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color color = Colors.green;
-    const Brightness brightness = Brightness.dark;
-
     return MaterialApp(
-      theme: ThemeData(brightness: brightness, iconTheme: const IconThemeData(color: color), colorSchemeSeed: color),
+      theme: ThemeData(
+        brightness: Provider.of<ThemeProvider>(context).brightness,
+        iconTheme: IconThemeData(color: Provider.of<ThemeProvider>(context).currentColor),
+        colorSchemeSeed: Provider.of<ThemeProvider>(context).currentColor,
+      ),
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: SafeArea(
@@ -29,9 +37,13 @@ class MyApp extends StatelessWidget {
               const Header(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                child: Text(
-                  "3 Items",
-                  style: GoogleFonts.jost(fontWeight: FontWeight.w500, fontSize: 16),
+                child: Consumer<QtyProvider>(
+                  builder: (context, cart, child) {
+                    return Text(
+                      "${cart.products.length} Items",
+                      style: GoogleFonts.jost(fontWeight: FontWeight.w500, fontSize: 16),
+                    );
+                  },
                 ),
               ),
               const ProductList(),
@@ -58,14 +70,22 @@ class CheckoutWidget extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () {},
         style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF006767),
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            // backgroundColor: const Color(0xFF006767),
+            // foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15), // Rounded corners
             ),
             maximumSize: const Size(double.infinity, 50.0),
             minimumSize: const Size(double.infinity, 50.0)),
-        child: Text('PROCEED TO CHECKOUT', style: GoogleFonts.jost(fontSize: 18, fontWeight: FontWeight.w600)),
+        child: Text(
+          'PROCEED TO CHECKOUT',
+          style: GoogleFonts.jost(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -83,8 +103,8 @@ class Summary extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(15, 15, 15, 15),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
+          color: Theme.of(context).colorScheme.onInverseSurface,
           // color: const Color(0xFFEFEFEF),
-          color: const Color.fromARGB(255, 44, 44, 44),
         ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Row(
@@ -134,13 +154,16 @@ class ProductList extends StatelessWidget {
         child: ListView.builder(
           itemCount: cart.products.length,
           itemBuilder: (context, index) {
-            return ProductItem(
-              index: index,
-              subtitle: cart.products[index]['subtitle'],
-              name: cart.products[index]['name'],
-              image: cart.products[index]['image'],
-              price: cart.products[index]['price'],
-              qty: cart.products[index]['qty'],
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: ProductItem(
+                index: index,
+                subtitle: cart.products[index]['subtitle'],
+                name: cart.products[index]['name'],
+                image: cart.products[index]['image'],
+                price: cart.products[index]['price'],
+                qty: cart.products[index]['qty'],
+              ),
             );
           },
         ),
@@ -221,15 +244,15 @@ class ProductItem extends StatelessWidget {
                   Column(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove),
+                        icon: Icon(Icons.remove,  color: Theme.of(context).colorScheme.inverseSurface,),
                         style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFFEFEFEF),
+                          backgroundColor: Theme.of(context).colorScheme.onInverseSurface,
                         ),
                         onPressed: () {
                           Provider.of<QtyProvider>(context, listen: false).decreaseQty(index);
                         },
                         iconSize: 20,
-                        color: Colors.black,
+                        // color: Colors.black,
                         constraints: const BoxConstraints(),
                         padding: EdgeInsets.zero,
                       ),
@@ -246,13 +269,13 @@ class ProductItem extends StatelessWidget {
                   Column(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.add),
-                        style: IconButton.styleFrom(backgroundColor: const Color(0xFFEFEFEF)),
+                        icon: Icon(Icons.add,  color: Theme.of(context).colorScheme.inverseSurface,),
+                        style: IconButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onInverseSurface),
                         onPressed: () {
                           Provider.of<QtyProvider>(context, listen: false).increaseQty(index);
                         },
                         iconSize: 20,
-                        color: Colors.black,
+                        // color: Colors.black,
                         constraints: const BoxConstraints(),
                         padding: EdgeInsets.zero,
                       )
@@ -275,64 +298,78 @@ class Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<QtyProvider>(builder: (context, cart, child) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.chevron_left),
-                Text(
-                  "Your Shopping Cart",
-                  style: GoogleFonts.jost(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.chevron_left),
+              Text(
+                "Your Shopping Cart",
+                style: GoogleFonts.jost(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Icon(
+                      Icons.shopping_cart_outlined,
+                      size: 25,
+                      color: Theme.of(context).colorScheme.inverseSurface,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Stack(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Icon(
-                        Icons.shopping_cart_outlined,
-                        size: 25,
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(100)),
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      child: Consumer<QtyProvider>(
+                        builder: (context, cart, child) {
+                          return Text(
+                            cart.totalItems().toString(),
+                            style: GoogleFonts.jost(
+                              fontSize: 10,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        width: 14,
-                        height: 14,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(100)),
-                          color: Colors.red,
-                        ),
-                        child: Text(
-                          cart.totalItems.toString(),
-                          style: GoogleFonts.jost(fontSize: 10, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                const CircleAvatar(
+                  ),
+                ],
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) {
+                    return Settings();
+                  }));
+                  // Navigator.push(context, MaterialPageRoute(builder: (context) => {const Settings()}))
+                },
+                child: const CircleAvatar(
                   foregroundImage: AssetImage('assets/user.png'),
-                )
-              ],
-            )
-          ],
-        ),
-      );
-    });
+                ),
+              )
+            ],
+          )
+        ],
+      ),
+    );
   }
 }
